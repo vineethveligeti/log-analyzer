@@ -1,0 +1,103 @@
+# Comprehensive Security Log Sample - Multiple Threat Scenarios
+# Format: timestamp|user|department|location|action|url|category|bytes_sent|bytes_received|user_agent|source_ip|destination_ip
+
+# Normal business activity (morning hours)
+2024-01-15T08:00:15Z|john.doe|IT|New York|ALLOW|https://www.google.com|Search Engines|1024|2048|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.100|8.8.8.8
+2024-01-15T08:01:22Z|jane.smith|HR|Boston|ALLOW|https://www.linkedin.com|Social Networking|512|1536|Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)|192.168.1.101|13.107.42.14
+2024-01-15T08:02:33Z|alice.brown|IT|New York|ALLOW|https://github.com|Software Development|2048|4096|Mozilla/5.0 (X11; Linux x86_64)|192.168.1.103|140.82.112.4
+2024-01-15T08:03:44Z|charlie.davis|Marketing|Seattle|ALLOW|https://www.facebook.com|Social Networking|1536|3072|Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1)|192.168.1.104|31.13.64.35
+2024-01-15T08:04:55Z|eve.johnson|IT|New York|ALLOW|https://stackoverflow.com|Software Development|1024|2048|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.105|151.101.193.69
+
+# Suspicious activity begins - High frequency requests from single IP
+2024-01-15T08:05:01Z|unknown|unknown|unknown|ALLOW|https://company-portal.com/login|Business|512|1024|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|203.0.113.45|192.168.1.200
+2024-01-15T08:05:02Z|unknown|unknown|unknown|ALLOW|https://company-portal.com/login|Business|512|1024|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|203.0.113.45|192.168.1.200
+2024-01-15T08:05:03Z|unknown|unknown|unknown|ALLOW|https://company-portal.com/login|Business|512|1024|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|203.0.113.45|192.168.1.200
+2024-01-15T08:05:04Z|unknown|unknown|unknown|ALLOW|https://company-portal.com/admin|Business|512|1024|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|203.0.113.45|192.168.1.200
+2024-01-15T08:05:05Z|unknown|unknown|unknown|ALLOW|https://company-portal.com/admin/users|Business|512|1024|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|203.0.113.45|192.168.1.200
+2024-01-15T08:05:06Z|unknown|unknown|unknown|ALLOW|https://company-portal.com/admin/config|Business|512|1024|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|203.0.113.45|192.168.1.200
+2024-01-15T08:05:07Z|unknown|unknown|unknown|ALLOW|https://company-portal.com/admin/database|Business|512|1024|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|203.0.113.45|192.168.1.200
+
+# Malware and phishing attempts
+2024-01-15T08:10:15Z|bob.wilson|Finance|Chicago|BLOCK|https://malicious-site.com/download.exe|Malware|0|0|curl/7.68.0|192.168.1.102|185.220.101.182
+2024-01-15T08:11:22Z|frank.miller|Sales|Denver|BLOCK|https://suspicious-download.com/trojan.exe|Malware|0|0|Wget/1.20.3|192.168.1.106|45.33.32.156
+2024-01-15T08:12:33Z|karen.harris|Marketing|Seattle|BLOCK|https://phishing-site.com/fake-login|Phishing|0|0|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.111|198.51.100.42
+2024-01-15T08:13:44Z|rachel.wright|HR|Boston|BLOCK|https://data-exfiltration.com/upload|Data Theft|0|0|Python-urllib/3.8|192.168.1.118|203.0.113.195
+
+# Large data transfers (potential data exfiltration)
+2024-01-15T08:15:01Z|mike.johnson|IT|New York|ALLOW|https://cloud-storage.com/upload|Cloud Storage|52428800|1024|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.120|104.16.54.13
+2024-01-15T08:16:15Z|sarah.davis|Finance|Chicago|ALLOW|https://backup-service.com/sync|Backup|104857600|2048|BackupClient/2.1|192.168.1.121|52.84.150.50
+2024-01-15T08:17:30Z|tom.wilson|Sales|Denver|ALLOW|https://file-share.com/bulk-upload|File Sharing|209715200|4096|FileSync/1.5|192.168.1.122|151.101.193.69
+
+# SQL Injection attempts
+2024-01-15T08:20:01Z|unknown|unknown|unknown|BLOCK|https://company-app.com/search?q='; DROP TABLE users; --|Business|512|0|sqlmap/1.4.7|198.51.100.100|192.168.1.200
+2024-01-15T08:20:15Z|unknown|unknown|unknown|BLOCK|https://company-app.com/login?user=admin' OR '1'='1|Business|512|0|Mozilla/5.0 (X11; Linux x86_64)|198.51.100.100|192.168.1.200
+2024-01-15T08:20:30Z|unknown|unknown|unknown|BLOCK|https://company-app.com/api/users?id=1 UNION SELECT password FROM admin|Business|512|0|curl/7.68.0|198.51.100.100|192.168.1.200
+
+# Cryptocurrency mining and suspicious domains
+2024-01-15T08:25:01Z|unknown|unknown|unknown|BLOCK|https://crypto-miner.com/mine.js|Cryptocurrency|0|0|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.125|45.33.32.200
+2024-01-15T08:25:15Z|unknown|unknown|unknown|BLOCK|https://suspicious-domain.tk/payload|Malware|0|0|PowerShell/7.0|192.168.1.126|185.220.101.200
+2024-01-15T08:25:30Z|unknown|unknown|unknown|BLOCK|https://botnet-c2.com/checkin|Botnet|512|256|Bot/1.0|192.168.1.127|203.0.113.250
+
+# Normal activity continues
+2024-01-15T08:30:01Z|grace.taylor|HR|Boston|ALLOW|https://www.indeed.com|Job Search|512|1024|Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)|192.168.1.107|52.84.150.50
+2024-01-15T08:31:15Z|henry.anderson|IT|New York|ALLOW|https://aws.amazon.com|Cloud Computing|4096|8192|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.108|52.94.236.248
+2024-01-15T08:32:30Z|ivy.thomas|Finance|Chicago|ALLOW|https://www.bloomberg.com|News|1024|2048|Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)|192.168.1.109|69.195.124.71
+
+# Brute force attack pattern
+2024-01-15T08:35:01Z|unknown|unknown|unknown|BLOCK|https://company-portal.com/login|Business|512|0|BruteForcer/1.0|45.33.32.100|192.168.1.200
+2024-01-15T08:35:02Z|unknown|unknown|unknown|BLOCK|https://company-portal.com/login|Business|512|0|BruteForcer/1.0|45.33.32.100|192.168.1.200
+2024-01-15T08:35:03Z|unknown|unknown|unknown|BLOCK|https://company-portal.com/login|Business|512|0|BruteForcer/1.0|45.33.32.100|192.168.1.200
+2024-01-15T08:35:04Z|unknown|unknown|unknown|BLOCK|https://company-portal.com/login|Business|512|0|BruteForcer/1.0|45.33.32.100|192.168.1.200
+2024-01-15T08:35:05Z|unknown|unknown|unknown|BLOCK|https://company-portal.com/login|Business|512|0|BruteForcer/1.0|45.33.32.100|192.168.1.200
+2024-01-15T08:35:06Z|unknown|unknown|unknown|BLOCK|https://company-portal.com/login|Business|512|0|BruteForcer/1.0|45.33.32.100|192.168.1.200
+2024-01-15T08:35:07Z|unknown|unknown|unknown|BLOCK|https://company-portal.com/login|Business|512|0|BruteForcer/1.0|45.33.32.100|192.168.1.200
+2024-01-15T08:35:08Z|unknown|unknown|unknown|BLOCK|https://company-portal.com/login|Business|512|0|BruteForcer/1.0|45.33.32.100|192.168.1.200
+
+# Legitimate business applications
+2024-01-15T08:40:01Z|jack.white|IT|New York|ALLOW|https://www.docker.com|Software Development|2048|4096|Mozilla/5.0 (X11; Linux x86_64)|192.168.1.110|54.230.159.166
+2024-01-15T08:41:15Z|larry.clark|Sales|Denver|ALLOW|https://salesforce.com|CRM|1536|3072|Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)|192.168.1.112|136.147.174.25
+2024-01-15T08:42:30Z|mary.lewis|HR|Boston|ALLOW|https://zoom.us|Video Conferencing|2048|4096|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.113|170.114.52.2
+
+# Advanced Persistent Threat (APT) simulation
+2024-01-15T08:45:01Z|system.admin|IT|New York|ALLOW|https://legitimate-update.com/patch.exe|Software Updates|10485760|512|UpdateManager/3.2|192.168.1.130|52.94.236.100
+2024-01-15T08:46:15Z|system.admin|IT|New York|ALLOW|https://command-control.net/beacon|Unknown|256|128|SystemService/1.0|192.168.1.130|203.0.113.100
+2024-01-15T08:47:30Z|system.admin|IT|New York|ALLOW|https://data-staging.com/exfil|Unknown|20971520|1024|DataSync/2.1|192.168.1.130|185.220.101.100
+
+# DDoS attack indicators
+2024-01-15T08:50:01Z|unknown|unknown|unknown|BLOCK|https://company-website.com/|Business|64|0|DDoS-Bot/1.0|198.51.100.10|192.168.1.200
+2024-01-15T08:50:01Z|unknown|unknown|unknown|BLOCK|https://company-website.com/|Business|64|0|DDoS-Bot/1.0|198.51.100.11|192.168.1.200
+2024-01-15T08:50:01Z|unknown|unknown|unknown|BLOCK|https://company-website.com/|Business|64|0|DDoS-Bot/1.0|198.51.100.12|192.168.1.200
+2024-01-15T08:50:01Z|unknown|unknown|unknown|BLOCK|https://company-website.com/|Business|64|0|DDoS-Bot/1.0|198.51.100.13|192.168.1.200
+2024-01-15T08:50:01Z|unknown|unknown|unknown|BLOCK|https://company-website.com/|Business|64|0|DDoS-Bot/1.0|198.51.100.14|192.168.1.200
+
+# Insider threat simulation
+2024-01-15T08:55:01Z|disgruntled.employee|Finance|Chicago|ALLOW|https://competitor-site.com/careers|Job Search|1024|2048|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.140|52.84.150.100
+2024-01-15T08:56:15Z|disgruntled.employee|Finance|Chicago|ALLOW|https://file-sharing.com/confidential-docs|File Sharing|52428800|1024|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.140|151.101.193.100
+2024-01-15T08:57:30Z|disgruntled.employee|Finance|Chicago|ALLOW|https://personal-email.com/send|Email|10485760|512|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.140|74.125.224.100
+
+# Web application attacks
+2024-01-15T09:00:01Z|unknown|unknown|unknown|BLOCK|https://company-app.com/admin/../../etc/passwd|Business|512|0|Nikto/2.1.6|203.0.113.50|192.168.1.200
+2024-01-15T09:00:15Z|unknown|unknown|unknown|BLOCK|https://company-app.com/search?q=<script>alert('XSS')</script>|Business|512|0|Mozilla/5.0 (X11; Linux x86_64)|203.0.113.50|192.168.1.200
+2024-01-15T09:00:30Z|unknown|unknown|unknown|BLOCK|https://company-app.com/upload.php?file=shell.php|Business|512|0|curl/7.68.0|203.0.113.50|192.168.1.200
+
+# Normal end-of-morning activity
+2024-01-15T09:05:01Z|nancy.walker|Finance|Chicago|ALLOW|https://quickbooks.intuit.com|Accounting|1024|2048|Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)|192.168.1.114|104.16.54.13
+2024-01-15T09:06:15Z|oscar.hall|IT|New York|ALLOW|https://kubernetes.io|Software Development|1536|3072|Mozilla/5.0 (X11; Linux x86_64)|192.168.1.115|185.199.108.153
+2024-01-15T09:07:30Z|peter.young|Marketing|Seattle|ALLOW|https://mailchimp.com|Email Marketing|1024|2048|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.116|198.2.134.24
+2024-01-15T09:08:45Z|quinn.king|Sales|Denver|ALLOW|https://hubspot.com|CRM|2048|4096|Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)|192.168.1.117|104.16.19.94
+2024-01-15T09:09:59Z|steve.lopez|Finance|Chicago|ALLOW|https://www.sec.gov|Government|512|1024|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.119|23.185.0.142
+
+# Afternoon spike in suspicious activity
+2024-01-15T14:00:01Z|unknown|unknown|unknown|BLOCK|https://ransomware-payload.com/encrypt|Malware|0|0|RansomBot/2.0|45.33.32.150|192.168.1.200
+2024-01-15T14:01:15Z|unknown|unknown|unknown|BLOCK|https://keylogger-site.com/capture|Spyware|0|0|KeyCapture/1.5|185.220.101.150|192.168.1.200
+2024-01-15T14:02:30Z|unknown|unknown|unknown|BLOCK|https://credential-harvester.com/steal|Phishing|0|0|CredHarvest/3.0|203.0.113.150|192.168.1.200
+
+# Late day normal activity
+2024-01-15T17:00:01Z|alice.brown|IT|New York|ALLOW|https://github.com/company/project|Software Development|4096|8192|Mozilla/5.0 (X11; Linux x86_64)|192.168.1.103|140.82.112.4
+2024-01-15T17:01:15Z|john.doe|IT|New York|ALLOW|https://stackoverflow.com/questions/security|Software Development|2048|4096|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.100|151.101.193.69
+2024-01-15T17:02:30Z|eve.johnson|IT|New York|ALLOW|https://docs.microsoft.com|Documentation|1024|2048|Mozilla/5.0 (Windows NT 10.0; Win64; x64)|192.168.1.105|13.107.42.14
+
+# Evening cleanup and maintenance
+2024-01-15T18:00:01Z|backup.service|System|Data Center|ALLOW|https://backup-storage.com/nightly|Backup|1073741824|4096|BackupAgent/4.2|192.168.1.200|52.84.150.200
+2024-01-15T18:30:01Z|update.service|System|Data Center|ALLOW|https://security-updates.com/patches|Security Updates|104857600|2048|UpdateClient/2.5|192.168.1.201|52.94.236.200
+2024-01-15T19:00:01Z|monitoring.agent|System|Data Center|ALLOW|https://monitoring-service.com/metrics|Monitoring|2048|1024|MonitorAgent/1.8|192.168.1.202|170.114.52.200
