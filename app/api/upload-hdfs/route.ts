@@ -62,15 +62,24 @@ export async function POST(request: NextRequest) {
     // Store HDFS log entries
     console.log("HDFS Upload: Storing log entries in database...")
     for (const entry of hdfsEntries) {
+      // Truncate values to fit VARCHAR constraints
+      const truncatedEntry = {
+        ...entry,
+        date: entry.date?.substring(0, 10) || "",
+        time: entry.time?.substring(0, 10) || "",
+        level: entry.level?.substring(0, 10) || "",
+        eventId: entry.eventId?.substring(0, 10) || ""
+      }
+      
       await sql`
         INSERT INTO hdfs_log_entries (
           upload_id, line_id, date, time, pid, level, component, 
           content, event_id, event_template, block_id
         ) VALUES (
-          ${uploadId}, ${entry.lineId}, ${entry.date}, ${entry.time}, 
-          ${entry.pid}, ${entry.level}, ${entry.component}, 
-          ${entry.content}, ${entry.eventId}, ${entry.eventTemplate}, 
-          ${entry.blockId || null}
+          ${uploadId}, ${truncatedEntry.lineId}, ${truncatedEntry.date}, ${truncatedEntry.time}, 
+          ${truncatedEntry.pid}, ${truncatedEntry.level}, ${truncatedEntry.component}, 
+          ${truncatedEntry.content}, ${truncatedEntry.eventId}, ${truncatedEntry.eventTemplate}, 
+          ${truncatedEntry.blockId || null}
         )
       `
     }
@@ -84,6 +93,10 @@ export async function POST(request: NextRequest) {
     const flaskServiceUrl = process.env.FLASK_SERVICE_URL || `http://localhost:${flaskPort}`
     const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/analysis-callback`
 
+    console.log(`HDFS Upload: Environment variables:`)
+    console.log(`  - FLASK_PORT: ${process.env.FLASK_PORT}`)
+    console.log(`  - FLASK_SERVICE_URL: ${process.env.FLASK_SERVICE_URL}`)
+    console.log(`  - NEXT_PUBLIC_APP_URL: ${process.env.NEXT_PUBLIC_APP_URL}`)
     console.log(`HDFS Upload: Flask service URL: ${flaskServiceUrl}`)
     console.log(`HDFS Upload: Callback URL: ${callbackUrl}`)
 

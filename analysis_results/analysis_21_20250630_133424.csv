@@ -1,0 +1,5 @@
+block_id,anomaly_score,reason
+blk_-3544583377289625738,17.78,Elevated error rate for this block
+blk_-1608999687919862906,13.68,Unusual timestamp pattern in block operations
+blk_7503483334202473044,27.46,Minor metadata validation warnings
+blk_-9073992586687739851,33.45,Block size anomaly - significantly larger than expected

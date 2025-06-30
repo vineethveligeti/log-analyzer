@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Database, Shield, AlertTriangle, LogOut, Loader2, Wifi, WifiOff, TestTube } from "lucide-react"
+import { Upload, Database, Shield, AlertTriangle, LogOut, Loader2, TestTube } from "lucide-react"
 import { HDFSFileUpload } from "@/components/hdfs-file-upload"
 import { HDFSAnalysisStatus } from "@/components/hdfs-analysis-status"
 import { HDFSAnalysisResults } from "@/components/hdfs-analysis-results"
@@ -220,12 +220,6 @@ export default function DashboardPage() {
                   {connectionStatus === "offline" ? "Waiting for connection..." : "Checking authentication"}
                 </p>
               </div>
-              {connectionStatus === "offline" && (
-                <div className="flex items-center space-x-2 text-red-600">
-                  <WifiOff className="h-4 w-4" />
-                  <span className="text-sm">No internet connection</span>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -246,7 +240,6 @@ export default function DashboardPage() {
                   <p>{authError}</p>
                   {connectionStatus === "offline" ? (
                     <div className="flex items-center space-x-2">
-                      <WifiOff className="h-4 w-4" />
                       <span className="text-sm">Check your internet connection</span>
                     </div>
                   ) : (
@@ -302,14 +295,7 @@ export default function DashboardPage() {
               <h1 className="text-xl font-bold text-gray-900">HDFS Log Analyzer</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                {connectionStatus === "online" ? (
-                  <Wifi className="h-4 w-4 text-green-600" />
-                ) : (
-                  <WifiOff className="h-4 w-4 text-red-600" />
-                )}
-                <span className="text-sm text-gray-600">Welcome, {user.email}</span>
-              </div>
+              <span className="text-sm text-gray-600">Welcome, {user.email}</span>
               <Button variant="ghost" size="sm" onClick={() => router.push("/demo")}>
                 <Shield className="h-4 w-4 mr-2" />
                 View Demo
@@ -324,21 +310,6 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Connection Status Alert */}
-        {connectionStatus === "offline" && (
-          <Alert variant="destructive" className="mb-6">
-            <WifiOff className="h-4 w-4" />
-            <AlertDescription>
-              <div className="flex items-center justify-between">
-                <span>No internet connection. Some features may not work properly.</span>
-                <Button size="sm" variant="outline" onClick={checkAuth}>
-                  Retry Connection
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
         {/* Upload Section */}
         <Card className="mb-8">
           <CardHeader>
@@ -415,43 +386,16 @@ export default function DashboardPage() {
                 )}
               </CardContent>
             </Card>
-
-            {/* Analysis Tabs */}
-            <Tabs defaultValue="status" className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="status">Analysis Status</TabsTrigger>
-                <TabsTrigger value="results" disabled={!analysisComplete}>
-                  Results {!analysisComplete && "(Pending)"}
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="status">
-                <HDFSAnalysisStatus
-                  uploadId={uploadResult.upload_id}
-                  onAnalysisComplete={handleAnalysisComplete}
-                  mockAnalysis={uploadResult.mock_analysis}
-                  flaskInstructions={uploadResult.instructions}
-                />
-              </TabsContent>
-
-              <TabsContent value="results">
-                {analysisComplete ? (
-                  <HDFSAnalysisResults uploadId={uploadResult.upload_id} />
-                ) : (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-center py-8">
-                        <Database className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                        <p className="text-lg font-medium text-gray-600">Analysis in Progress</p>
-                        <p className="text-sm text-gray-500">Results will appear here once analysis completes</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-            </Tabs>
           </div>
         )}
+
+        {/* Upload History and Analysis */}
+        <HDFSAnalysisStatus
+          uploadId={uploadResult?.upload_id || ""}
+          onAnalysisComplete={handleAnalysisComplete}
+          mockAnalysis={uploadResult?.mock_analysis}
+          flaskInstructions={uploadResult?.instructions}
+        />
       </main>
     </div>
   )

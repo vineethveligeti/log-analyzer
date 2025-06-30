@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@/lib/db"
 
-export async function POST(request: NextRequest, { params }: { params: { uploadId: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ uploadId: string }> }) {
   try {
-    const uploadId = params.uploadId
+    const { uploadId } = await params
 
     console.log(`Manual Analysis: Triggering analysis for upload ${uploadId}`)
 

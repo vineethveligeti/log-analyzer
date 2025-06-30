@@ -1,0 +1,5 @@
+block_id,anomaly_score,reason
+blk_-3544583377289625738,11.63,Higher than normal replication requests
+blk_-1608999687919862906,19.91,Block access from unusual IP range
+blk_7503483334202473044,43.01,Failed block allocation - potential storage issue
+blk_-9073992586687739851,28.03,Delayed block allocation response

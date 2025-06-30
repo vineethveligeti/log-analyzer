@@ -1,0 +1,5 @@
+block_id,anomaly_score,reason
+blk_-3544583377289625738,21.99,Unusual timestamp pattern in block operations
+blk_-1608999687919862906,32.98,Unusual timestamp pattern in block operations
+blk_7503483334202473044,23.11,Block size slightly above normal threshold
+blk_-9073992586687739851,37.66,Suspicious access pattern detected

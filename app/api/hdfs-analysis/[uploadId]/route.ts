@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@/lib/db"
 
-export async function GET(request: NextRequest, { params }: { params: { uploadId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ uploadId: string }> }) {
   try {
-    const uploadId = params.uploadId
+    const { uploadId } = await params
 
     // Get upload info
     const uploadInfo = await sql`

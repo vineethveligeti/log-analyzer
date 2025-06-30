@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@/lib/db"
 
-export async function GET(request: NextRequest, { params }: { params: { uploadId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ uploadId: string }> }) {
   try {
-    const uploadId = params.uploadId
+    const { uploadId } = await params
 
     // Add connection resilience headers
     const headers = {
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest, { params }: { params: { uploadId
     }
 
     // Get analysis progress with error handling and timeouts
-    let totalBlocks, analyzedBlocks, anomalousBlocks, recentResults
+    let totalBlocks: any[], analyzedBlocks: any[], anomalousBlocks: any[], recentResults: any[]
 
     try {
       // Use Promise.allSettled to handle partial failures gracefully
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest, { params }: { params: { uploadId
     const errorResponse = {
       error: "Failed to get analysis status",
       details: error instanceof Error ? error.message : "Unknown error",
-      upload_id: params.uploadId,
+      upload_id: "unknown",
       server_time: new Date().toISOString(),
     }
 

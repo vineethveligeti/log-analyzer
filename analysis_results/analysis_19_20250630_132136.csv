@@ -1,0 +1,5 @@
+block_id,anomaly_score,reason
+blk_-3544583377289625738,7.5,Block size slightly above normal threshold
+blk_-1608999687919862906,25.99,Non-standard block naming pattern
+blk_7503483334202473044,25.95,Unusual timestamp pattern in block operations
+blk_-9073992586687739851,21.12,Elevated error rate for this block

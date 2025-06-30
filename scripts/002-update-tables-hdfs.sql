@@ -7,13 +7,13 @@ CREATE TABLE IF NOT EXISTS hdfs_log_entries (
   id SERIAL PRIMARY KEY,
   upload_id INTEGER REFERENCES log_uploads(id),
   line_id INTEGER,
-  date VARCHAR(10),
-  time VARCHAR(10),
+  date VARCHAR(50),
+  time VARCHAR(50),
   pid INTEGER,
-  level VARCHAR(10),
+  level VARCHAR(50),
   component VARCHAR(255),
   content TEXT,
-  event_id VARCHAR(10),
+  event_id VARCHAR(50),
   event_template TEXT,
   block_id VARCHAR(255),
   anomaly_score DECIMAL(5,2) DEFAULT 0.0,
@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS analysis_results (
   block_id VARCHAR(255),
   anomaly_score DECIMAL(5,2),
   anomaly_reason TEXT,
-  processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(upload_id, block_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_analysis_results_upload_id ON analysis_results(upload_id);

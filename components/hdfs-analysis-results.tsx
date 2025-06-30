@@ -190,35 +190,51 @@ export function HDFSAnalysisResults({ uploadId }: HDFSAnalysisResultsProps) {
               <CardDescription>Detailed anomaly analysis for each HDFS block from Flask service</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Block ID</TableHead>
-                      <TableHead>Component</TableHead>
-                      <TableHead>Risk Score</TableHead>
-                      <TableHead>Risk Level</TableHead>
-                      <TableHead>Reason</TableHead>
-                      <TableHead>Content</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.analysis_results.map((result, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-mono text-sm">{result.block_id}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{result.component}</Badge>
-                        </TableCell>
-                        <TableCell className="font-bold">{result.anomaly_score}%</TableCell>
-                        <TableCell>{getRiskBadge(result.anomaly_score)}</TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {result.anomaly_reason || "Normal activity"}
-                        </TableCell>
-                        <TableCell className="max-w-md truncate text-sm">{result.content}</TableCell>
+              <div className="rounded-md border relative">
+                {/* Scroll indicator */}
+                <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-b from-blue-50 to-transparent pointer-events-none z-10" />
+                
+                {/* Scrollable table container */}
+                <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-white z-10">
+                      <TableRow>
+                        <TableHead>Block ID</TableHead>
+                        <TableHead>Component</TableHead>
+                        <TableHead>Risk Score</TableHead>
+                        <TableHead>Risk Level</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead>Content</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {data.analysis_results.map((result, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-mono text-sm">{result.block_id}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{result.component}</Badge>
+                          </TableCell>
+                          <TableCell className="font-bold">{result.anomaly_score}%</TableCell>
+                          <TableCell>{getRiskBadge(result.anomaly_score)}</TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {result.anomaly_reason || "Normal activity"}
+                          </TableCell>
+                          <TableCell className="max-w-md truncate text-sm">{result.content}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                
+                {/* Bottom scroll indicator */}
+                <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-t from-blue-50 to-transparent pointer-events-none z-10" />
+                
+                {/* Scroll for more indicator */}
+                {data.analysis_results.length > 5 && (
+                  <div className="absolute bottom-2 right-2 text-xs text-gray-500 bg-white px-2 py-1 rounded border">
+                    Scroll for more
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -231,24 +247,40 @@ export function HDFSAnalysisResults({ uploadId }: HDFSAnalysisResultsProps) {
               <CardDescription>Risk analysis grouped by HDFS components</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {data.component_breakdown.map((component, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <Database className="h-5 w-5 text-blue-600" />
-                      <div>
-                        <p className="font-medium">{component.component}</p>
-                        <p className="text-sm text-gray-600">
-                          {toInteger(component.count)} blocks, {toInteger(component.anomalous_count)} anomalous
-                        </p>
+              <div className="relative">
+                {/* Scroll indicator */}
+                <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-b from-blue-50 to-transparent pointer-events-none z-10" />
+                
+                {/* Scrollable component list */}
+                <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 space-y-4 pr-2">
+                  {data.component_breakdown.map((component, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Database className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <p className="font-medium">{component.component}</p>
+                          <p className="text-sm text-gray-600">
+                            {toInteger(component.count)} blocks, {toInteger(component.anomalous_count)} anomalous
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg font-bold">{toNumber(component.avg_score).toFixed(1)}%</span>
+                        {getRiskBadge(toNumber(component.avg_score))}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg font-bold">{toNumber(component.avg_score).toFixed(1)}%</span>
-                      {getRiskBadge(toNumber(component.avg_score))}
-                    </div>
+                  ))}
+                </div>
+                
+                {/* Bottom scroll indicator */}
+                <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-t from-blue-50 to-transparent pointer-events-none z-10" />
+                
+                {/* Scroll for more indicator */}
+                {data.component_breakdown.length > 5 && (
+                  <div className="absolute bottom-2 right-2 text-xs text-gray-500 bg-white px-2 py-1 rounded border">
+                    Scroll for more
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>

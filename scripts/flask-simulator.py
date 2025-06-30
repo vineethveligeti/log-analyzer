@@ -112,70 +112,82 @@ def generate_anomaly_score_and_reason(block_id, component, content):
     return round(score, 2), reason
 
 def process_blocks_async(upload_id, block_data, callback_url, analysis_filename):
-    """Process blocks asynchronously and send results via callback"""
+    """Process blocks sequentially and send completion notification when done"""
     
-    print(f"Starting async processing for upload {upload_id}")
+    print(f"Starting sequential processing for upload {upload_id}")
     print(f"Processing {len(block_data)} blocks...")
     
     # Create analysis results file
     analysis_filepath = os.path.join(ANALYSIS_RESULTS_DIR, analysis_filename)
     
-    with open(analysis_filepath, 'w', newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['block_id', 'anomaly_score', 'reason']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
+    try:
+        with open(analysis_filepath, 'w', newline='', encoding='utf-8') as csvfile:
+            fieldnames = ['block_id', 'anomaly_score', 'reason']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            
+            for i, block_info in enumerate(block_data):
+                block_id = block_info['block_id']
+                component = block_info.get('component', 'unknown')
+                content = block_info.get('content', '')
+                
+                # Generate analysis result
+                anomaly_score, reason = generate_anomaly_score_and_reason(block_id, component, content)
+                
+                # Write to CSV immediately
+                writer.writerow({
+                    'block_id': block_id,
+                    'anomaly_score': anomaly_score,
+                    'reason': reason
+                })
+                
+                # Force flush to ensure data is written to disk
+                csvfile.flush()
+                
+                print(f"✓ Processed block {block_id} (Score: {anomaly_score}%) - Written to CSV")
+                
+                # Add delay between processing blocks
+                time.sleep(CALLBACK_DELAY_SECONDS)
         
-        for i, block_info in enumerate(block_data):
-            block_id = block_info['block_id']
-            component = block_info.get('component', 'unknown')
-            content = block_info.get('content', '')
-            
-            # Generate analysis result
-            anomaly_score, reason = generate_anomaly_score_and_reason(block_id, component, content)
-            
-            # Write to CSV
-            writer.writerow({
-                'block_id': block_id,
-                'anomaly_score': anomaly_score,
-                'reason': reason
-            })
-            
-            # Send callback to Next.js
-            callback_data = {
-                'upload_id': upload_id,
-                'block_id': block_id,
-                'anomaly_score': anomaly_score,
-                'reason': reason
-            }
-            
-            try:
-                response = requests.post(callback_url, json=callback_data, timeout=10)
-                if response.status_code == 200:
-                    print(f"✓ Sent result for block {block_id} (Score: {anomaly_score}%)")
-                else:
-                    print(f"✗ Failed to send result for block {block_id}: {response.status_code}")
-            except Exception as e:
-                print(f"✗ Error sending callback for block {block_id}: {e}")
-            
-            # Add delay between processing blocks
-            time.sleep(CALLBACK_DELAY_SECONDS)
+        # Ensure file is properly closed and saved
+        print(f"✓ CSV file completed: {analysis_filename}")
+        
+    except Exception as e:
+        print(f"✗ Error writing CSV file: {e}")
+        return
     
-    # Send final notification with analysis file info
-    final_callback_data = {
+    # Send completion notification to Next.js with all results
+    completion_data = {
         'upload_id': upload_id,
         'analysis_complete': True,
         'analysis_filename': analysis_filename,
         'analysis_filepath': analysis_filepath,
-        'total_blocks_processed': len(block_data)
+        'total_blocks_processed': len(block_data),
+        'results': []
     }
     
+    # Read the CSV file and include all results in the completion notification
     try:
-        response = requests.post(callback_url + '-complete', json=final_callback_data, timeout=10)
-        print(f"✓ Analysis complete notification sent for upload {upload_id}")
+        with open(analysis_filepath, 'r', newline='', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                completion_data['results'].append({
+                    'block_id': row['block_id'],
+                    'anomaly_score': float(row['anomaly_score']),
+                    'reason': row['reason']
+                })
     except Exception as e:
-        print(f"✗ Error sending completion notification: {e}")
+        print(f"⚠️  Error reading CSV for completion notification: {e}")
+    
+    try:
+        response = requests.post(callback_url + '-complete', json=completion_data, timeout=10)
+        print(f"✓ Analysis complete notification sent for upload {upload_id}")
+        print(f"✓ Sent {len(completion_data['results'])} results to Next.js")
+    except Exception as e:
+        print(f"⚠️  Error sending completion notification: {e} (but analysis is complete)")
     
     print(f"Analysis complete for upload {upload_id}. Results saved to {analysis_filename}")
+    print(f"📁 File location: {os.path.abspath(analysis_filepath)}")
 
 @app.route('/analyze', methods=['POST'])
 def analyze_hdfs_logs():

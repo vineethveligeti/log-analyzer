@@ -1,0 +1,5 @@
+block_id,anomaly_score,reason
+blk_-3544583377289625738,20.66,Block access from unusual IP range
+blk_-1608999687919862906,26.41,Higher than normal replication requests
+blk_7503483334202473044,27.18,Block metadata inconsistency found
+blk_-9073992586687739851,80.13,Block corruption detected - checksum mismatch - Block blk_-9073992586687739851 requires immediate attention

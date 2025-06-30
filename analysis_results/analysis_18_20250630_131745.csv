@@ -1,0 +1,5 @@
+block_id,anomaly_score,reason
+blk_-3544583377289625738,33.74,Block size anomaly - significantly larger than expected
+blk_-1608999687919862906,95.2,Failed block allocation - potential storage issue - Block blk_-1608999687919862906 requires immediate attention
+blk_7503483334202473044,41.92,Unusual replication pattern from multiple sources
+blk_-9073992586687739851,47.51,Block metadata inconsistency found
