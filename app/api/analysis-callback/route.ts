@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@/lib/db"
-import { notifyAnalysisProgress } from "../analysis-notifications/route"
+import { notifyAnalysisProgress } from "@/lib/notifications"
 
 export async function POST(request: NextRequest) {
   try {

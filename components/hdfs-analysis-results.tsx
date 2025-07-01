@@ -76,7 +76,7 @@ export function HDFSAnalysisResults({ uploadId }: HDFSAnalysisResultsProps) {
         } else {
           setError("Failed to fetch analysis results")
         }
-      } catch (error) {
+      } catch {
         setError("Network error while fetching results")
       } finally {
         setLoading(false)

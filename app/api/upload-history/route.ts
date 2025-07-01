@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { sql } from "@/lib/db"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Check authentication
     const cookieStore = await cookies()

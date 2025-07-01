@@ -20,7 +20,7 @@ export interface LogUpload {
   file_size: number
   upload_date: string
   status: string
-  analysis_results?: any
+  analysis_results?: Record<string, unknown>
 }
 
 export interface LogEntry {

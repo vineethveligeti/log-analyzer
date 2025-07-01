@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,7 +15,7 @@ interface UploadResult {
   unique_blocks: number
   status: string
   analysis_status: string
-  instructions?: any
+  instructions?: Record<string, unknown>
   error?: string
 }
 
@@ -23,46 +23,15 @@ export default function DashboardPage() {
   const [user, setUser] = useState<{ email: string } | null>(null)
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
   const [isUploading, setIsUploading] = useState(false)
-  const [error, setError] = useState("")
-  const [analysisComplete, setAnalysisComplete] = useState(false)
+  const [, setError] = useState("")
+  const [, setAnalysisComplete] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [authError, setAuthError] = useState("")
   const [connectionStatus, setConnectionStatus] = useState<"online" | "offline">("online")
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const router = useRouter()
 
-  // Monitor online/offline status
-  useEffect(() => {
-    const handleOnline = () => {
-      console.log("Dashboard: Connection restored")
-      setConnectionStatus("online")
-      if (user) {
-        checkAuth()
-      }
-    }
-
-    const handleOffline = () => {
-      console.log("Dashboard: Connection lost")
-      setConnectionStatus("offline")
-    }
-
-    window.addEventListener("online", handleOnline)
-    window.addEventListener("offline", handleOffline)
-
-    setConnectionStatus(navigator.onLine ? "online" : "offline")
-
-    return () => {
-      window.removeEventListener("online", handleOnline)
-      window.removeEventListener("offline", handleOffline)
-    }
-  }, [user])
-
-  useEffect(() => {
-    console.log("Dashboard: Starting authentication check...")
-    checkAuth()
-  }, [])
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       console.log("Dashboard: Checking authentication...")
 
@@ -118,7 +87,38 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [connectionStatus, router])
+
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log("Dashboard: Connection restored")
+      setConnectionStatus("online")
+      if (user) {
+        checkAuth()
+      }
+    }
+
+    const handleOffline = () => {
+      console.log("Dashboard: Connection lost")
+      setConnectionStatus("offline")
+    }
+
+    window.addEventListener("online", handleOnline)
+    window.addEventListener("offline", handleOffline)
+
+    setConnectionStatus(navigator.onLine ? "online" : "offline")
+
+    return () => {
+      window.removeEventListener("online", handleOnline)
+      window.removeEventListener("offline", handleOffline)
+    }
+  }, [user, checkAuth])
+
+  useEffect(() => {
+    console.log("Dashboard: Starting authentication check...")
+    checkAuth()
+  }, [checkAuth])
 
   const handleLogout = async () => {
     try {
@@ -361,10 +361,10 @@ export default function DashboardPage() {
                     <AlertTriangle className="h-4 w-4 text-blue-600" />
                     <AlertDescription>
                       <div className="space-y-2">
-                        <p className="font-medium text-blue-800">{uploadResult.instructions.message}</p>
+                        <p className="font-medium text-blue-800">{String(uploadResult.instructions.message || '')}</p>
                         <ul className="text-sm text-blue-700 space-y-1">
-                          {uploadResult.instructions.options.map((option: string, index: number) => (
-                            <li key={index}>• {option}</li>
+                          {Array.isArray(uploadResult.instructions.options) && uploadResult.instructions.options.map((option: unknown, index: number) => (
+                            <li key={index}>• {String(option)}</li>
                           ))}
                         </ul>
                       </div>

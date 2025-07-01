@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
+// import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
@@ -13,14 +13,14 @@ import {
   CheckCircle,
   AlertTriangle,
   Activity,
-  Download,
+  // Download,
   FileText,
   RefreshCw,
-  ExternalLink,
-  Play,
-  Server,
+  // ExternalLink,
+  // Play,
+  // Server,
   Eye,
-  EyeOff,
+  // EyeOff,
 } from "lucide-react"
 import { FlaskServiceSetup } from "./flask-service-setup"
 
@@ -41,7 +41,7 @@ interface AnalysisResult {
 interface HDFSAnalysisStatusProps {
   uploadId: string
   onAnalysisComplete: () => void
-  flaskInstructions?: any
+  flaskInstructions?: Record<string, unknown>
   refreshTrigger?: number
 }
 
@@ -153,7 +153,7 @@ export function HDFSAnalysisStatus({
     return () => {
       clearInterval(intervalId)
     }
-  }, [])
+  }, [fetchUploadHistory])
 
   // Listen for SSE notifications about analysis completion
   useEffect(() => {
@@ -193,7 +193,7 @@ export function HDFSAnalysisStatus({
       console.log('HDFSAnalysisStatus: Closing SSE connection')
       eventSource.close()
     }
-  }, []) // Remove fetchUploadHistory from dependencies
+  }, [fetchUploadHistory])
 
   const handleAnalysisClick = (uploadId: string) => {
     setSelectedUpload(uploadId)
@@ -221,37 +221,37 @@ export function HDFSAnalysisStatus({
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-100 text-green-800"
-      case "processing":
-        return "bg-blue-100 text-blue-800"
-      case "flask_unavailable":
-      case "flask_unreachable":
-      case "flask_error":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
+  // const getStatusColor = (status: string) => {
+  //   switch (status) {
+  //     case "completed":
+  //       return "bg-green-100 text-green-800"
+  //     case "processing":
+  //       return "bg-blue-100 text-blue-800"
+  //     case "flask_unavailable":
+  //     case "flask_unreachable":
+  //     case "flask_error":
+  //       return "bg-red-100 text-red-800"
+  //     default:
+  //       return "bg-gray-100 text-gray-800"
+  //   }
+  // }
 
-  const getStatusMessage = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "Completed"
-      case "processing":
-        return "Processing"
-      case "flask_unavailable":
-        return "Flask Unavailable"
-      case "flask_unreachable":
-        return "Flask Unreachable"
-      case "flask_error":
-        return "Flask Error"
-      default:
-        return "Unknown"
-    }
-  }
+  // const getStatusMessage = (status: string) => {
+  //   switch (status) {
+  //     case "completed":
+  //       return "Completed"
+  //     case "processing":
+  //       return "Processing"
+  //     case "flask_unavailable":
+  //       return "Flask Unavailable"
+  //     case "flask_unreachable":
+  //       return "Flask Unreachable"
+  //     case "flask_error":
+  //       return "Flask Error"
+  //     default:
+  //       return "Unknown"
+  //   }
+  // }
 
   const isAnalysisClickable = (status: string) => {
     return status === "completed"

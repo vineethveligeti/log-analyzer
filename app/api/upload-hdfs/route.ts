@@ -3,7 +3,6 @@ import { cookies } from "next/headers"
 import { sql } from "@/lib/db"
 import { parseHDFSLog, extractBlockIds } from "@/lib/hdfs-parser"
 import fs from "fs/promises"
-import path from "path"
 import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
 

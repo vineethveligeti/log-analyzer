@@ -63,7 +63,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Get analysis progress with error handling and timeouts
-    let totalBlocks: any[], analyzedBlocks: any[], anomalousBlocks: any[], recentResults: any[]
+    let totalBlocks: Array<{ count: number }>, analyzedBlocks: Array<{ count: number }>, anomalousBlocks: Array<{ count: number }>, recentResults: Array<Record<string, unknown>>
 
     try {
       // Use Promise.allSettled to handle partial failures gracefully
@@ -92,10 +92,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         `,
       ])
 
-      totalBlocks = results[0].status === "fulfilled" ? results[0].value : [{ count: 0 }]
-      analyzedBlocks = results[1].status === "fulfilled" ? results[1].value : [{ count: 0 }]
-      anomalousBlocks = results[2].status === "fulfilled" ? results[2].value : [{ count: 0 }]
-      recentResults = results[3].status === "fulfilled" ? results[3].value : []
+      totalBlocks = results[0].status === "fulfilled" ? results[0].value as Array<{ count: number }> : [{ count: 0 }]
+      analyzedBlocks = results[1].status === "fulfilled" ? results[1].value as Array<{ count: number }> : [{ count: 0 }]
+      anomalousBlocks = results[2].status === "fulfilled" ? results[2].value as Array<{ count: number }> : [{ count: 0 }]
+      recentResults = results[3].status === "fulfilled" ? results[3].value as Array<Record<string, unknown>> : []
 
       // Log any failures
       results.forEach((result, index) => {

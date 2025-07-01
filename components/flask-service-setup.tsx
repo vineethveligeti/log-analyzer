@@ -33,7 +33,7 @@ export function FlaskServiceSetup({ onServiceReady }: FlaskServiceSetupProps) {
       } else {
         setServiceStatus("stopped")
       }
-    } catch (error) {
+    } catch {
       setServiceStatus("stopped")
     }
   }
@@ -43,8 +43,8 @@ export function FlaskServiceSetup({ onServiceReady }: FlaskServiceSetupProps) {
       await navigator.clipboard.writeText(text)
       setCopied(label)
       setTimeout(() => setCopied(""), 2000)
-    } catch (error) {
-      console.error("Failed to copy:", error)
+    } catch (copyError) {
+      console.error("Failed to copy:", copyError)
     }
   }
 
@@ -109,8 +109,8 @@ export function FlaskServiceSetup({ onServiceReady }: FlaskServiceSetupProps) {
                           {copied === "start" ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                         </Button>
                       </div>
-                      <p className="text-sm">2. Wait for "Flask simulator started" message</p>
-                      <p className="text-sm">3. Click "Check Status" above to verify</p>
+                      <p className="text-sm">2. Wait for &quot;Flask simulator started&quot; message</p>
+                      <p className="text-sm">3. Click &quot;Check Status&quot; above to verify</p>
                     </div>
                   </div>
                 </AlertDescription>
@@ -187,7 +187,7 @@ export function FlaskServiceSetup({ onServiceReady }: FlaskServiceSetupProps) {
                   <AlertDescription>
                     <p className="font-medium mb-1">Expected Output:</p>
                     <code className="text-xs bg-gray-100 p-1 rounded">
-                      {`{"status": "healthy", "service": "HDFS Log Analysis Flask Simulator"}`}
+                      {`{\"status\": \"healthy\", \"service\": \"HDFS Log Analysis Flask Simulator\"}`}
                     </code>
                   </AlertDescription>
                 </Alert>
@@ -203,7 +203,7 @@ export function FlaskServiceSetup({ onServiceReady }: FlaskServiceSetupProps) {
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
                       <div className="space-y-2">
-                        <p className="font-medium">❌ "Connection refused" or "Failed to fetch"</p>
+                        <p className="font-medium">❌ &quot;Connection refused&quot; or &quot;Failed to fetch&quot;</p>
                         <ul className="text-sm space-y-1 ml-4">
                           <li>• Flask service is not running</li>
                           <li>
@@ -219,7 +219,7 @@ export function FlaskServiceSetup({ onServiceReady }: FlaskServiceSetupProps) {
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
                       <div className="space-y-2">
-                        <p className="font-medium">❌ "Python not found" or "pip not found"</p>
+                        <p className="font-medium">❌ &quot;Python not found&quot; or &quot;pip not found&quot;</p>
                         <ul className="text-sm space-y-1 ml-4">
                           <li>
                             • Install Python 3: <code className="bg-gray-100 px-1 rounded">brew install python3</code>{" "}
@@ -243,7 +243,7 @@ export function FlaskServiceSetup({ onServiceReady }: FlaskServiceSetupProps) {
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
                       <div className="space-y-2">
-                        <p className="font-medium">❌ "Port 5000 already in use"</p>
+                        <p className="font-medium">❌ &quot;Port 5000 already in use&quot;</p>
                         <ul className="text-sm space-y-1 ml-4">
                           <li>
                             • Kill existing process:{" "}

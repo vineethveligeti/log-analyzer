@@ -124,7 +124,7 @@ async function detectAnomaly(
   totalEntries: number,
 ): Promise<AnomalyDetection> {
   const ipCount = ipFrequency.get(entry.sourceIp) || 0
-  const urlCount = urlFrequency.get(entry.url) || 0
+  // const urlCount = urlFrequency.get(entry.url) || 0
 
   // Rule-based anomaly detection
   let isAnomaly = false

@@ -1,7 +1,7 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log("Auth API: Checking session...")
 
