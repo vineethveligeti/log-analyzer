@@ -12,17 +12,33 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 import requests
 import threading
+from dotenv import load_dotenv
 
 import sys
 sys.path.append('../')
 from loglizer import dataloader, preprocessing
 import joblib
 
+# Load environment variables from .env file
+load_dotenv()
+
 app = Flask(__name__)
 
-# Configuration
-ANALYSIS_RESULTS_DIR = "analysis_results"
-CALLBACK_DELAY_SECONDS = 2  # Delay between processing each block
+# Configuration from environment variables
+FLASK_HOST = os.getenv('FLASK_HOST', '0.0.0.0')
+FLASK_PORT = int(os.getenv('FLASK_PORT', 5555))
+ANALYSIS_RESULTS_DIR = os.getenv('ANALYSIS_RESULTS_DIR', 'analysis_results')
+CALLBACK_DELAY_SECONDS = float(os.getenv('CALLBACK_DELAY_SECONDS', 0.01))
+NEXT_PUBLIC_URL = os.getenv('NEXT_PUBLIC_URL', 'http://localhost:3000')
+NEXT_CALLBACK_BASE_URL = os.getenv('NEXT_CALLBACK_BASE_URL', 'http://localhost:3000/api/analysis-callback')
+
+print(f"🔧 Flask Configuration:")
+print(f"   Host: {FLASK_HOST}")
+print(f"   Port: {FLASK_PORT}")
+print(f"   Next.js URL: {NEXT_PUBLIC_URL}")
+print(f"   Callback Base URL: {NEXT_CALLBACK_BASE_URL}")
+print(f"   Analysis Results Dir: {ANALYSIS_RESULTS_DIR}")
+print(f"   Callback Delay: {CALLBACK_DELAY_SECONDS}s")
 
 # Ensure results directory exists
 os.makedirs(ANALYSIS_RESULTS_DIR, exist_ok=True)
@@ -145,49 +161,40 @@ def process_blocks_async(upload_id, block_data, callback_url, analysis_filename)
     print(f"Starting sequential processing for upload {upload_id}")
     print(f"Processing {len(block_data)} blocks...")
     
-    # Create analysis results file
-    analysis_filepath = os.path.join(ANALYSIS_RESULTS_DIR, analysis_filename)
+    # Process blocks without saving to CSV file
+    analysis_results = []
     
     try:
-        with open(analysis_filepath, 'w', newline='', encoding='utf-8') as csvfile:
-            fieldnames = ['block_id', 'anomaly_score', 'reason']
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-
-            delay = 0
-            delay_limit = 6
-            
-            for i, block_info in enumerate(block_data):
-                block_id = block_info['block_id']
-                component = block_info.get('component', 'unknown')
-                content = block_info.get('content', '')
-                
-                # Generate analysis result
-                anomaly_score, reason = generate_anomaly_score_and_reason(block_id, component, content)
-                
-                # Write to CSV immediately
-                writer.writerow({
-                    'block_id': block_id,
-                    'anomaly_score': anomaly_score,
-                    'reason': reason
-                })
-                
-                # Force flush to ensure data is written to disk
-                csvfile.flush()
-                
-                print(f"✓ Processed block {block_id} (Score: {anomaly_score}%) - Written to CSV")
-                if delay > delay_limit:
-                    continue
-                
-                # Add delay between processing blocks
-                time.sleep(CALLBACK_DELAY_SECONDS)
-                delay += CALLBACK_DELAY_SECONDS
+        delay = 0
+        delay_limit = 6
         
-        # Ensure file is properly closed and saved
-        print(f"✓ CSV file completed: {analysis_filename}")
+        for i, block_info in enumerate(block_data):
+            block_id = block_info['block_id']
+            component = block_info.get('component', 'unknown')
+            content = block_info.get('content', '')
+            
+            # Generate analysis result
+            anomaly_score, reason = generate_anomaly_score_and_reason(block_id, component, content)
+            
+            # Store result in memory instead of CSV
+            analysis_results.append({
+                'block_id': block_id,
+                'anomaly_score': anomaly_score,
+                'reason': reason
+            })
+            
+            print(f"✓ Processed block {block_id} (Score: {anomaly_score}%) - Stored in memory")
+            if delay > delay_limit:
+                continue
+            
+            # Add delay between processing blocks
+            time.sleep(CALLBACK_DELAY_SECONDS)
+            delay += CALLBACK_DELAY_SECONDS
+        
+        print(f"✓ Analysis completed: {len(analysis_results)} blocks processed")
         
     except Exception as e:
-        print(f"✗ Error writing CSV file: {e}")
+        print(f"✗ Error processing blocks: {e}")
         return
     
     # Send completion notification to Next.js with all results
@@ -195,33 +202,22 @@ def process_blocks_async(upload_id, block_data, callback_url, analysis_filename)
         'upload_id': upload_id,
         'analysis_complete': True,
         'analysis_filename': analysis_filename,
-        'analysis_filepath': analysis_filepath,
+        'analysis_filepath': None,  # No file saved
         'total_blocks_processed': len(block_data),
-        'results': []
+        'results': analysis_results  # Use results from memory
     }
     
-    # Read the CSV file and include all results in the completion notification
     try:
-        with open(analysis_filepath, 'r', newline='', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                completion_data['results'].append({
-                    'block_id': row['block_id'],
-                    'anomaly_score': float(row['anomaly_score']),
-                    'reason': row['reason']
-                })
-    except Exception as e:
-        print(f"⚠️  Error reading CSV for completion notification: {e}")
-    
-    try:
-        response = requests.post(callback_url + '-complete', json=completion_data, timeout=10)
+        # Use environment variable for callback URL, fallback to parameter if not set
+        callback_endpoint = callback_url if callback_url else NEXT_CALLBACK_BASE_URL
+        response = requests.post(callback_endpoint + '-complete', json=completion_data, timeout=10)
         print(f"✓ Analysis complete notification sent for upload {upload_id}")
         print(f"✓ Sent {len(completion_data['results'])} results to Next.js")
+        print(f"✓ Callback URL used: {callback_endpoint + '-complete'}")
     except Exception as e:
         print(f"⚠️  Error sending completion notification: {e} (but analysis is complete)")
     
-    print(f"Analysis complete for upload {upload_id}. Results saved to {analysis_filename}")
-    print(f"📁 File location: {os.path.abspath(analysis_filepath)}")
+    print(f"Analysis complete for upload {upload_id}. Results sent directly to Next.js (no file saved)")
 
 @app.route('/analyze', methods=['POST'])
 def analyze_hdfs_logs():
@@ -236,6 +232,11 @@ def analyze_hdfs_logs():
         total_entries = data.get('total_entries', 0)
         block_ids = data.get('block_ids', [])
         callback_url = data.get('callback_url')
+        
+        # Use environment variable as fallback for callback URL
+        if not callback_url:
+            callback_url = NEXT_CALLBACK_BASE_URL
+            print(f"ℹ️  Using default callback URL from environment: {callback_url}")
         
         print(f"\n🔍 Received analysis request:")
         print(f"   Upload ID: {upload_id}")
@@ -347,4 +348,6 @@ if __name__ == '__main__':
     print("   GET /health - Health check")
     print("\n" + "="*50)
     
-    app.run(host='0.0.0.0', port=5555, debug=True)
+    # Use environment variables for host and port
+    debug_mode = os.getenv('FLASK_ENV', 'production') == 'development'
+    app.run(host=FLASK_HOST, port=FLASK_PORT, debug=debug_mode)

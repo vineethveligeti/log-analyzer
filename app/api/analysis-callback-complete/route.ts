@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@/lib/db"
 import { notifyAnalysisComplete } from "../analysis-notifications/route"
+import fs from "fs/promises"
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,6 +24,19 @@ export async function POST(request: NextRequest) {
     console.log(`- Blocks processed: ${total_blocks_processed}`)
     console.log(`- Results count: ${results?.length || 0}`)
 
+    // Get file path for cleanup
+    let filePath = null
+    try {
+      const uploadInfo = await sql`
+        SELECT file_path FROM log_uploads WHERE id = ${upload_id}
+      `
+      if (uploadInfo.length > 0) {
+        filePath = uploadInfo[0].file_path
+      }
+    } catch (error) {
+      console.warn(`Analysis Complete: Could not get file path for upload ${upload_id}:`, error)
+    }
+
     // Update upload status with analysis file information
     await sql`
       UPDATE log_uploads 
@@ -37,6 +51,16 @@ export async function POST(request: NextRequest) {
         })}
       WHERE id = ${upload_id}
     `
+
+    // Clean up uploaded file after successful analysis
+    if (filePath) {
+      try {
+        await fs.unlink(filePath)
+        console.log(`✓ Cleanup: Deleted uploaded file after analysis completion for upload ${upload_id}: ${filePath}`)
+      } catch (cleanupError) {
+        console.error(`⚠️  Cleanup: Failed to delete file for upload ${upload_id}: ${filePath}`, cleanupError)
+      }
+    }
 
     // Save analysis results to database using bulk insert if provided
     if (results && Array.isArray(results) && results.length > 0) {

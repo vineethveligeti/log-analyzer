@@ -2,8 +2,28 @@ import { type NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { sql } from "@/lib/db"
 import { parseHDFSLog, extractBlockIds } from "@/lib/hdfs-parser"
+import fs from "fs/promises"
+import path from "path"
 import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
+
+// File cleanup function
+async function cleanupUploadedFile(filePath: string, uploadId: string) {
+  try {
+    await fs.unlink(filePath)
+    console.log(`✓ Cleanup: Deleted uploaded file for upload ${uploadId}: ${filePath}`)
+  } catch (error) {
+    console.error(`⚠️  Cleanup: Failed to delete file for upload ${uploadId}: ${filePath}`, error)
+  }
+}
+
+// Schedule file deletion after timeout
+function scheduleFileCleanup(filePath: string, uploadId: string, timeoutMs: number = 600000) { // 10 minutes default
+  setTimeout(async () => {
+    console.log(`⏰ Cleanup: Timeout reached for upload ${uploadId}, attempting file deletion`)
+    await cleanupUploadedFile(filePath, uploadId)
+  }, timeoutMs)
+}
 import { existsSync } from "fs"
 
 export async function POST(request: NextRequest) {
@@ -80,6 +100,10 @@ export async function POST(request: NextRequest) {
 
     const uploadId = uploadResult[0].id
     console.log(`HDFS Upload: Created upload record with ID ${uploadId}`)
+
+    // Schedule file cleanup after 10 minutes (timeout fallback)
+    scheduleFileCleanup(filePath, uploadId.toString(), 600000) // 10 minutes
+    console.log(`🗑️  Cleanup: Scheduled file deletion for upload ${uploadId} in 10 minutes`)
 
     // Store HDFS log entries using bulk insert (batch processing for better performance)
     console.log(`HDFS Upload: Storing ${hdfsEntries.length} log entries in database using bulk insert...`)
