@@ -105,15 +105,7 @@ export default function LoginPage() {
                 Sign up
               </Button>
             </div>
-            <div className="pt-2 border-t">
-              <Button
-                variant="link"
-                className="p-0 h-auto font-normal text-purple-600"
-                onClick={() => router.push("/demo")}
-              >
-                🔍 View Demo Analysis Results
-              </Button>
-            </div>
+
           </div>
         </CardContent>
       </Card>

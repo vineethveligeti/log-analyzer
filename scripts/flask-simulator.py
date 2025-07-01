@@ -153,6 +153,9 @@ def process_blocks_async(upload_id, block_data, callback_url, analysis_filename)
             fieldnames = ['block_id', 'anomaly_score', 'reason']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
+
+            delay = 0
+            delay_limit = 6
             
             for i, block_info in enumerate(block_data):
                 block_id = block_info['block_id']
@@ -173,9 +176,12 @@ def process_blocks_async(upload_id, block_data, callback_url, analysis_filename)
                 csvfile.flush()
                 
                 print(f"✓ Processed block {block_id} (Score: {anomaly_score}%) - Written to CSV")
+                if delay > delay_limit:
+                    continue
                 
                 # Add delay between processing blocks
                 time.sleep(CALLBACK_DELAY_SECONDS)
+                delay += CALLBACK_DELAY_SECONDS
         
         # Ensure file is properly closed and saved
         print(f"✓ CSV file completed: {analysis_filename}")

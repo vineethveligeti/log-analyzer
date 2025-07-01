@@ -1,17 +1,13 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
-
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Database, Shield, AlertTriangle, LogOut, Loader2, TestTube } from "lucide-react"
+import { Upload, Database, Shield, AlertTriangle, LogOut, Loader2 } from "lucide-react"
 import { HDFSFileUpload } from "@/components/hdfs-file-upload"
 import { HDFSAnalysisStatus } from "@/components/hdfs-analysis-status"
-import { HDFSAnalysisResults } from "@/components/hdfs-analysis-results"
 
 interface UploadResult {
   upload_id: string
@@ -19,7 +15,6 @@ interface UploadResult {
   unique_blocks: number
   status: string
   analysis_status: string
-  mock_analysis?: any
   instructions?: any
   error?: string
 }
@@ -156,7 +151,13 @@ export default function DashboardPage() {
       formData.append("file", file)
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000)
+      // Increase timeout for large files (1MB = 10 seconds, minimum 60 seconds, maximum 240 seconds)
+      const timeoutMs = Math.min(Math.max(60000, (file.size / 1024 / 1024) * 10000), 240000)
+      console.log(`Dashboard: Setting upload timeout to ${timeoutMs}ms for ${(file.size / 1024 / 1024).toFixed(1)}MB file`)
+      
+      const timeoutId = setTimeout(() => {
+        controller.abort(new Error(`Upload timeout after ${timeoutMs / 1000} seconds`))
+      }, timeoutMs)
 
       const response = await fetch("/api/upload-hdfs", {
         method: "POST",
@@ -173,10 +174,7 @@ export default function DashboardPage() {
         setUploadResult(result)
         setConnectionStatus("online")
 
-        // If we have mock analysis, mark as complete immediately
-        if (result.mock_analysis) {
-          setAnalysisComplete(true)
-        }
+
 
         setRefreshTrigger(prevTrigger => prevTrigger + 1)
 
@@ -305,10 +303,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">Welcome, {user.email}</span>
-              <Button variant="ghost" size="sm" onClick={() => router.push("/demo")}>
-                <Shield className="h-4 w-4 mr-2" />
-                View Demo
-              </Button>
+
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
@@ -345,12 +340,7 @@ export default function DashboardPage() {
                 <CardTitle className="flex items-center space-x-2">
                   <Database className="h-5 w-5 text-blue-600" />
                   <span>Upload Summary</span>
-                  {uploadResult.mock_analysis && (
-                    <Badge variant="secondary" className="ml-2">
-                      <TestTube className="h-3 w-3 mr-1" />
-                      Mock Data
-                    </Badge>
-                  )}
+
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -390,7 +380,7 @@ export default function DashboardPage() {
         <HDFSAnalysisStatus
           uploadId={uploadResult?.upload_id || ""}
           onAnalysisComplete={handleAnalysisComplete}
-          mockAnalysis={uploadResult?.mock_analysis}
+
           flaskInstructions={uploadResult?.instructions}
           refreshTrigger={refreshTrigger}
         />

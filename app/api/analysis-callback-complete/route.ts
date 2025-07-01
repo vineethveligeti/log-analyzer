@@ -38,29 +38,49 @@ export async function POST(request: NextRequest) {
       WHERE id = ${upload_id}
     `
 
-    // Save analysis results to database if provided
+    // Save analysis results to database using bulk insert if provided
     if (results && Array.isArray(results) && results.length > 0) {
-      console.log(`Saving ${results.length} analysis results to database...`)
+      console.log(`Saving ${results.length} analysis results to database using bulk insert...`)
       
-      for (const result of results) {
-        console.log(`Saving result: ${upload_id} ,${result.block_id}`)
-        await sql`
-          INSERT INTO analysis_results (upload_id, block_id, anomaly_score, anomaly_reason, processed_at)
-          VALUES (
-            ${upload_id}, 
-            ${result.block_id}, 
-            ${result.anomaly_score}, 
-            ${result.reason || 'No reason provided'}, 
-            ${new Date().toISOString()}
-          )
-          ON CONFLICT (upload_id, block_id) DO UPDATE SET
-            anomaly_score = EXCLUDED.anomaly_score,
-            anomaly_reason = EXCLUDED.anomaly_reason,
-            processed_at = EXCLUDED.processed_at
-        `
+      // Process in batches for better performance
+      const BATCH_SIZE = 500
+      const batches = []
+      
+      for (let i = 0; i < results.length; i += BATCH_SIZE) {
+        batches.push(results.slice(i, i + BATCH_SIZE))
       }
       
-      console.log(`✓ Saved ${results.length} analysis results to database`)
+      console.log(`Processing ${batches.length} batches of up to ${BATCH_SIZE} results each...`)
+      const processedAt = new Date().toISOString()
+      
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex]
+        
+        // Use concurrent inserts for this batch
+        const insertPromises = batch.map(result => {
+          return sql`
+            INSERT INTO analysis_results (upload_id, block_id, anomaly_score, anomaly_reason, processed_at)
+            VALUES (
+              ${upload_id}, 
+              ${result.block_id}, 
+              ${result.anomaly_score}, 
+              ${result.reason || 'No reason provided'}, 
+              ${processedAt}
+            )
+            ON CONFLICT (upload_id, block_id) DO UPDATE SET
+              anomaly_score = EXCLUDED.anomaly_score,
+              anomaly_reason = EXCLUDED.anomaly_reason,
+              processed_at = EXCLUDED.processed_at
+          `
+        })
+        
+        // Execute all inserts in this batch concurrently
+        await Promise.all(insertPromises)
+        
+        console.log(`✓ Inserted batch ${batchIndex + 1}/${batches.length} (${batch.length} results)`)
+      }
+      
+      console.log(`✓ Bulk saved all ${results.length} analysis results to database`)
     }
 
     // Notify connected clients about analysis completion

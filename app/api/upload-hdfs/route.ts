@@ -81,29 +81,53 @@ export async function POST(request: NextRequest) {
     const uploadId = uploadResult[0].id
     console.log(`HDFS Upload: Created upload record with ID ${uploadId}`)
 
-    // Store HDFS log entries
-    console.log("HDFS Upload: Storing log entries in database...")
-    for (const entry of hdfsEntries) {
-      // Truncate values to fit VARCHAR constraints
-      const truncatedEntry = {
-        ...entry,
-        date: entry.date?.substring(0, 10) || "",
-        time: entry.time?.substring(0, 10) || "",
-        level: entry.level?.substring(0, 10) || "",
-        eventId: entry.eventId?.substring(0, 10) || ""
+    // Store HDFS log entries using bulk insert (batch processing for better performance)
+    console.log(`HDFS Upload: Storing ${hdfsEntries.length} log entries in database using bulk insert...`)
+    
+    if (hdfsEntries.length > 0) {
+      // Process in batches to avoid query size limits and improve performance
+      const BATCH_SIZE = 500 // Smaller batch size to avoid parameter limits
+      const batches = []
+      
+      for (let i = 0; i < hdfsEntries.length; i += BATCH_SIZE) {
+        batches.push(hdfsEntries.slice(i, i + BATCH_SIZE))
       }
       
-      await sql`
-        INSERT INTO hdfs_log_entries (
-          upload_id, line_id, date, time, pid, level, component, 
-          content, event_id, event_template, block_id
-        ) VALUES (
-          ${uploadId}, ${truncatedEntry.lineId}, ${truncatedEntry.date}, ${truncatedEntry.time}, 
-          ${truncatedEntry.pid}, ${truncatedEntry.level}, ${truncatedEntry.component}, 
-          ${truncatedEntry.content}, ${truncatedEntry.eventId}, ${truncatedEntry.eventTemplate}, 
-          ${truncatedEntry.blockId || null}
-        )
-      `
+      console.log(`Processing ${batches.length} batches of up to ${BATCH_SIZE} entries each...`)
+      
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex]
+        
+        // Use the sql template literal with array of values
+        const insertPromises = batch.map(entry => {
+          const truncatedEntry = {
+            ...entry,
+            date: entry.date?.substring(0, 10) || "",
+            time: entry.time?.substring(0, 10) || "",
+            level: entry.level?.substring(0, 10) || "",
+            eventId: entry.eventId?.substring(0, 10) || ""
+          }
+          
+          return sql`
+            INSERT INTO hdfs_log_entries (
+              upload_id, line_id, date, time, pid, level, component, 
+              content, event_id, event_template, block_id
+            ) VALUES (
+              ${uploadId}, ${truncatedEntry.lineId}, ${truncatedEntry.date}, ${truncatedEntry.time}, 
+              ${truncatedEntry.pid}, ${truncatedEntry.level}, ${truncatedEntry.component}, 
+              ${truncatedEntry.content}, ${truncatedEntry.eventId}, ${truncatedEntry.eventTemplate}, 
+              ${truncatedEntry.blockId || null}
+            )
+          `
+        })
+        
+        // Execute all inserts in this batch concurrently
+        await Promise.all(insertPromises)
+        
+        console.log(`✓ Inserted batch ${batchIndex + 1}/${batches.length} (${batch.length} entries)`)
+      }
+      
+      console.log(`✓ Bulk inserted all ${hdfsEntries.length} log entries successfully`)
     }
 
     // Extract unique block IDs
@@ -111,7 +135,7 @@ export async function POST(request: NextRequest) {
     console.log(`HDFS Upload: Extracted ${blockIds.length} unique block IDs:`, blockIds.slice(0, 5))
 
     // Check Flask service configuration
-    const flaskPort = process.env.FLASK_PORT || "5000"
+    const flaskPort = process.env.FLASK_PORT || "5555" // Default to 5555 to match Flask simulator
     const flaskServiceUrl = process.env.FLASK_SERVICE_URL || `http://localhost:${flaskPort}`
     const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/analysis-callback`
 
@@ -143,9 +167,9 @@ export async function POST(request: NextRequest) {
       console.warn("HDFS Upload: Flask service health check failed:", healthError)
     }
 
-    // If Flask service is not available, provide mock analysis or instructions
+    // If Flask service is not available, return error
     if (!flaskHealthy) {
-      console.log("HDFS Upload: Flask service not available, providing mock analysis...")
+      console.log("HDFS Upload: Flask service not available")
 
       // Update status to indicate Flask service issue
       try {
@@ -158,32 +182,15 @@ export async function POST(request: NextRequest) {
         console.warn("HDFS Upload: Could not update status:", updateError)
       }
 
-      // Generate mock analysis results for demonstration
-      const mockResults = await generateMockAnalysis(uploadId, blockIds)
-
       return NextResponse.json({
-        upload_id: uploadId,
-        total_entries: hdfsEntries.length,
-        unique_blocks: blockIds.length,
-        status: "uploaded",
-        analysis_status: "flask_unavailable",
-        flask_service_url: flaskServiceUrl,
-        mock_analysis: mockResults,
-        instructions: {
-          message: "Flask service is not running. You can either:",
-          options: [
-            "1. Start the Flask service using: npm run flask-simulator",
-            "2. View the mock analysis results below",
-            "3. Check the Flask service setup instructions in the README",
-          ],
-          flask_setup: {
-            command: "npm run flask-simulator",
-            url: `http://localhost:${flaskPort}`,
-            health_check: `http://localhost:${flaskPort}/health`,
-          },
-        },
-        error: "Flask service unavailable - using mock analysis",
-      })
+        success: false,
+        error: "Flask ML service is not available",
+        flask_instructions: [
+          "1. Start the Flask service using: python scripts/flask-simulator.py",
+          "2. Ensure it's running on the correct port (check .env.local)",
+          "3. Try uploading again once Flask is running"
+        ]
+      }, { status: 503 })
     }
 
     // Flask service is available, send analysis request
@@ -275,32 +282,15 @@ export async function POST(request: NextRequest) {
         console.warn("HDFS Upload: Could not update unreachable status:", updateError)
       }
 
-      // Generate mock analysis for demonstration
-      const mockResults = await generateMockAnalysis(uploadId, blockIds)
-
       return NextResponse.json({
-        upload_id: uploadId,
-        total_entries: hdfsEntries.length,
-        unique_blocks: blockIds.length,
-        status: "uploaded",
-        analysis_status: "flask_unreachable",
-        mock_analysis: mockResults,
-        flask_service_url: flaskServiceUrl,
-        instructions: {
-          message: "Flask service connection failed. You can either:",
-          options: [
-            "1. Start the Flask service: npm run flask-simulator",
-            `2. Check if Flask is running: curl http://localhost:${flaskPort}/health`,
-            "3. View mock analysis results below",
-          ],
-          flask_setup: {
-            command: "npm run flask-simulator",
-            url: `http://localhost:${flaskPort}`,
-            health_check: `http://localhost:${flaskPort}/health`,
-          },
-        },
+        success: false,
         error: `Flask service unreachable: ${flaskError instanceof Error ? flaskError.message : "Unknown error"}`,
-      })
+        flask_instructions: [
+          "1. Start the Flask service: python scripts/flask-simulator.py",
+          `2. Check if Flask is running: curl http://localhost:${flaskPort}/health`,
+          "3. Try uploading again once Flask is running"
+        ]
+      }, { status: 503 })
     }
   } catch (error) {
     console.error("HDFS Upload: Unexpected error:", error)
@@ -314,70 +304,4 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Generate mock analysis results for demonstration when Flask is not available
-async function generateMockAnalysis(uploadId: string, blockIds: string[]) {
-  console.log(`Generating mock analysis for upload ${uploadId} with ${blockIds.length} blocks`)
 
-  const mockResults = []
-
-  for (const blockId of blockIds.slice(0, 10)) {
-    // Limit to first 10 blocks for demo
-    // Generate realistic mock scores
-    const anomalyScore = Math.random() * 100
-    let reason = "Normal block operation"
-
-    if (anomalyScore > 80) {
-      reason = "High risk: Unusual block access pattern detected"
-    } else if (anomalyScore > 60) {
-      reason = "Medium risk: Elevated replication requests"
-    } else if (anomalyScore > 40) {
-      reason = "Low risk: Minor metadata validation warnings"
-    }
-
-    const result = {
-      block_id: blockId,
-      anomaly_score: Math.round(anomalyScore * 100) / 100,
-      reason: reason,
-      processed_at: new Date().toISOString(),
-    }
-
-    mockResults.push(result)
-
-    // Store mock result in database
-    try {
-      await sql`
-        INSERT INTO analysis_results (upload_id, block_id, anomaly_score, anomaly_reason)
-        VALUES (${uploadId}, ${blockId}, ${result.anomaly_score}, ${result.reason})
-      `
-
-      // Update HDFS log entry
-      await sql`
-        UPDATE hdfs_log_entries 
-        SET anomaly_score = ${result.anomaly_score}, 
-            is_anomalous = ${result.anomaly_score > 50}, 
-            anomaly_reason = ${result.reason}
-        WHERE upload_id = ${uploadId} AND block_id = ${blockId}
-      `
-    } catch (dbError) {
-      console.warn("Could not store mock result:", dbError)
-    }
-  }
-
-  // Update upload status to completed for mock analysis
-  try {
-    await sql`
-      UPDATE log_uploads 
-      SET analysis_status = 'completed_mock', status = 'completed'
-      WHERE id = ${uploadId}
-    `
-  } catch (updateError) {
-    console.warn("Could not update mock completion status:", updateError)
-  }
-
-  return {
-    total_blocks: blockIds.length,
-    analyzed_blocks: mockResults.length,
-    results: mockResults,
-    note: "This is mock analysis data generated because Flask service is not available",
-  }
-}

@@ -273,19 +273,7 @@ export function FlaskServiceSetup({ onServiceReady }: FlaskServiceSetupProps) {
             </TabsContent>
           </Tabs>
 
-          {/* Mock Analysis Option */}
-          <Alert className="bg-yellow-50 border-yellow-200">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <AlertDescription>
-              <div className="space-y-2">
-                <p className="font-medium text-yellow-800">💡 Alternative: Use Mock Analysis</p>
-                <p className="text-sm text-yellow-700">
-                  If you can't set up Flask right now, the system will automatically generate mock analysis results for
-                  demonstration purposes. You can still explore all the features!
-                </p>
-              </div>
-            </AlertDescription>
-          </Alert>
+
         </div>
       </CardContent>
     </Card>

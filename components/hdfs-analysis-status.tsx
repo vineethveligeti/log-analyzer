@@ -41,7 +41,6 @@ interface AnalysisResult {
 interface HDFSAnalysisStatusProps {
   uploadId: string
   onAnalysisComplete: () => void
-  mockAnalysis?: any
   flaskInstructions?: any
   refreshTrigger?: number
 }
@@ -49,7 +48,6 @@ interface HDFSAnalysisStatusProps {
 export function HDFSAnalysisStatus({
   uploadId,
   onAnalysisComplete,
-  mockAnalysis,
   flaskInstructions,
   refreshTrigger,
 }: HDFSAnalysisStatusProps) {
@@ -60,23 +58,15 @@ export function HDFSAnalysisStatus({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [showFlaskSetup, setShowFlaskSetup] = useState(false)
-  const [usingMockData, setUsingMockData] = useState(false)
-  
   // Ref for the analysis section
   const analysisSectionRef = useRef<HTMLDivElement>(null)
 
   // Check if we have Flask service issues from upload
   useEffect(() => {
-    if (flaskInstructions || mockAnalysis) {
+    if (flaskInstructions) {
       setShowFlaskSetup(true)
-      setUsingMockData(!!mockAnalysis)
-
-      if (mockAnalysis) {
-        // If we have mock analysis, mark as complete
-        onAnalysisComplete()
-      }
     }
-  }, [flaskInstructions, mockAnalysis, uploadId, onAnalysisComplete])
+  }, [flaskInstructions, uploadId, onAnalysisComplete])
 
   // Fetch upload history
   const fetchUploadHistory = useCallback(async () => {
@@ -152,6 +142,19 @@ export function HDFSAnalysisStatus({
     }
   }, [refreshTrigger, fetchUploadHistory])
 
+  // Auto-refresh upload history every 5 seconds
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log('HDFSAnalysisStatus: Auto-refreshing upload history')
+      fetchUploadHistory()
+    }, 5000) // Refresh every 5 seconds
+
+    // Cleanup interval on unmount
+    return () => {
+      clearInterval(intervalId)
+    }
+  }, [])
+
   // Listen for SSE notifications about analysis completion
   useEffect(() => {
     console.log('HDFSAnalysisStatus: Setting up SSE connection')
@@ -167,8 +170,8 @@ export function HDFSAnalysisStatus({
         console.log('HDFSAnalysisStatus: Received SSE notification:', data)
         
         if (data.type === 'analysis_complete') {
-          console.log(`HDFSAnalysisStatus: Analysis complete for upload ${data.uploadId}, refreshing history`)
-          // Call fetchUploadHistory directly without dependency
+          console.log(`HDFSAnalysisStatus: Analysis complete for upload ${data.uploadId}, refreshing history immediately`)
+          // Immediate refresh when analysis completes
           fetchUploadHistory()
         }
       } catch (error) {
@@ -178,6 +181,11 @@ export function HDFSAnalysisStatus({
     
     eventSource.onerror = (error) => {
       console.error('HDFSAnalysisStatus: SSE connection error:', error)
+      // Attempt to reconnect after 5 seconds
+      setTimeout(() => {
+        console.log('HDFSAnalysisStatus: Attempting to reconnect SSE...')
+        eventSource.close()
+      }, 5000)
     }
     
     // Cleanup on unmount
@@ -201,7 +209,6 @@ export function HDFSAnalysisStatus({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "completed":
-      case "completed_mock":
         return <CheckCircle className="h-4 w-4 text-green-600" />
       case "processing":
         return <Activity className="h-4 w-4 text-blue-600" />
@@ -217,7 +224,6 @@ export function HDFSAnalysisStatus({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
-      case "completed_mock":
         return "bg-green-100 text-green-800"
       case "processing":
         return "bg-blue-100 text-blue-800"
@@ -234,8 +240,6 @@ export function HDFSAnalysisStatus({
     switch (status) {
       case "completed":
         return "Completed"
-      case "completed_mock":
-        return "Completed (Mock)"
       case "processing":
         return "Processing"
       case "flask_unavailable":
@@ -250,7 +254,7 @@ export function HDFSAnalysisStatus({
   }
 
   const isAnalysisClickable = (status: string) => {
-    return status === "completed" || status === "completed_mock"
+    return status === "completed"
   }
 
   const getAnomalyScoreColor = (score: number) => {
@@ -272,14 +276,20 @@ export function HDFSAnalysisStatus({
           <CardTitle className="flex items-center space-x-2">
             <Database className="h-5 w-5" />
             <span>Upload History</span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={fetchUploadHistory}
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-            </Button>
+            <div className="ml-auto flex items-center space-x-2">
+              <div className="flex items-center space-x-1 text-xs text-gray-500">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>Auto-refresh: 5s</span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={fetchUploadHistory}
+                disabled={isLoading}
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
           </CardTitle>
           <CardDescription>
             View all your uploaded HDFS log files and their analysis status
