@@ -13,6 +13,11 @@ from flask import Flask, request, jsonify
 import requests
 import threading
 
+import sys
+sys.path.append('../')
+from loglizer import dataloader, preprocessing
+import joblib
+
 app = Flask(__name__)
 
 # Configuration
@@ -21,6 +26,12 @@ CALLBACK_DELAY_SECONDS = 2  # Delay between processing each block
 
 # Ensure results directory exists
 os.makedirs(ANALYSIS_RESULTS_DIR, exist_ok=True)
+
+# Get the directory where this script is located
+script_dir = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(script_dir, 'loglizer_LR_model_benchmark.joblib')
+model = joblib.load(model_path) # 👈 Load your saved model
+print('Model loaded successfully. ✅')
 
 # Sample anomaly reasons for different risk levels
 ANOMALY_REASONS = {
@@ -110,6 +121,23 @@ def generate_anomaly_score_and_reason(block_id, component, content):
             reason += f" - Block {block_id} shows concerning patterns"
     
     return round(score, 2), reason
+
+
+def inference(file_path):
+    print(file_path)
+    (x_train, y_train), (x_test, y_test), _= dataloader.load_HDFS(file_path,
+                                                                label_file=None,
+                                                                window='session', 
+                                                                train_ratio=0,
+                                                                split_type='uniform')
+
+    feature_extractor = preprocessing.FeatureExtractor()
+    feature_extractor.inference_mode()
+    x_test = feature_extractor.transform(x_test)
+
+    # print(' prediction probs:')
+    pred_probs = model.predict_proba(x_test)[:10]
+    return pred_probs
 
 def process_blocks_async(upload_id, block_data, callback_url, analysis_filename):
     """Process blocks sequentially and send completion notification when done"""

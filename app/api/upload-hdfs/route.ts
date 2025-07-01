@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { sql } from "@/lib/db"
 import { parseHDFSLog, extractBlockIds } from "@/lib/hdfs-parser"
+import { writeFile, mkdir } from "fs/promises"
+import { join } from "path"
+import { existsSync } from "fs"
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,6 +31,25 @@ export async function POST(request: NextRequest) {
 
     console.log(`HDFS Upload: Processing file ${file.name} (${file.size} bytes)`)
 
+    // Create temporary directory for uploaded files
+    const tempDir = join(process.cwd(), "temp", "uploads")
+    if (!existsSync(tempDir)) {
+      await mkdir(tempDir, { recursive: true })
+    }
+
+    // Save file to temporary directory
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
+    const safeFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
+    const filePath = join(tempDir, `${timestamp}_${safeFilename}`)
+    
+    console.log(`HDFS Upload: Saving file to ${filePath}`)
+    
+    // Convert file to buffer and save
+    const fileBuffer = Buffer.from(await file.arrayBuffer())
+    await writeFile(filePath, fileBuffer)
+    
+    console.log(`HDFS Upload: File saved successfully to ${filePath}`)
+
     // Read and parse HDFS log file
     const fileContent = await file.text()
     const hdfsEntries = parseHDFSLog(fileContent)
@@ -38,17 +60,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No valid HDFS log entries found" }, { status: 400 })
     }
 
-    // Store upload record - try with analysis_status first, fallback without it
+    // Store upload record with file path
     let uploadResult
     try {
       uploadResult = await sql`
-        INSERT INTO log_uploads (user_id, filename, file_size, status, analysis_status)
-        VALUES (${userId}, ${file.name}, ${file.size}, 'uploaded', 'pending')
+        INSERT INTO log_uploads (user_id, filename, file_size, status, analysis_status, file_path)
+        VALUES (${userId}, ${file.name}, ${file.size}, 'uploaded', 'pending', ${filePath})
         RETURNING id
       `
     } catch (columnError) {
-      console.warn("HDFS Upload: analysis_status column not found, using basic insert:", columnError)
-      // Fallback to basic insert without analysis_status
+      console.warn("HDFS Upload: Some columns not found, using basic insert:", columnError)
+      // Fallback to basic insert without optional columns
       uploadResult = await sql`
         INSERT INTO log_uploads (user_id, filename, file_size, status)
         VALUES (${userId}, ${file.name}, ${file.size}, 'uploaded')
@@ -171,6 +193,7 @@ export async function POST(request: NextRequest) {
       const flaskPayload = {
         upload_id: uploadId,
         filename: file.name,
+        file_path: filePath, // Path to the saved raw file
         total_entries: hdfsEntries.length,
         block_ids: blockIds,
         callback_url: callbackUrl,

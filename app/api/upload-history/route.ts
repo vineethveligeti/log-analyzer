@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
+import { cookies } from "next/headers"
 import { sql } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
-    // Get all uploads (for now, we'll add user filtering later)
+    // Check authentication
+    const cookieStore = await cookies()
+    const sessionCookie = cookieStore.get("session")
+
+    if (!sessionCookie) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+
+    const session = JSON.parse(sessionCookie.value)
+    const userId = session.userId
+
+    // Get uploads for the authenticated user only
     const uploads = await sql`
       SELECT 
         id,
@@ -12,6 +24,7 @@ export async function GET(request: NextRequest) {
         analysis_status,
         flask_job_id
       FROM log_uploads 
+      WHERE user_id = ${userId}
       ORDER BY upload_date DESC
     `
 
