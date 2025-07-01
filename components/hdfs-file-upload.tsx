@@ -4,19 +4,24 @@ import { useState, useCallback } from "react"
 import { useDropzone } from "react-dropzone"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { FileText, X, Database } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FileText, X, Database, CheckCircle, AlertTriangle, Loader2 } from "lucide-react"
 
 interface HDFSFileUploadProps {
-  onFileUpload: (file: File) => void
+  onFileUpload: (file: File) => Promise<{ success: boolean; error?: string }>
   isLoading: boolean
 }
 
 export function HDFSFileUpload({ onFileUpload, isLoading }: HDFSFileUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle")
+  const [uploadError, setUploadError] = useState<string>("")
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       setSelectedFile(acceptedFiles[0])
+      setUploadStatus("idle")
+      setUploadError("")
     }
   }, [])
 
@@ -27,19 +32,106 @@ export function HDFSFileUpload({ onFileUpload, isLoading }: HDFSFileUploadProps)
       "text/plain": [".txt", ".log"],
     },
     maxFiles: 1,
-    disabled: isLoading,
+    disabled: isLoading || uploadStatus === "uploading",
   })
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (selectedFile) {
-      onFileUpload(selectedFile)
+      setUploadStatus("uploading")
+      setUploadError("")
+      
+      try {
+        const result = await onFileUpload(selectedFile)
+        
+        if (result.success) {
+          setUploadStatus("success")
+          // Keep the success state briefly, then reset for new upload
+          setTimeout(() => {
+            setSelectedFile(null)
+            setUploadStatus("idle")
+          }, 2000)
+        } else {
+          setUploadStatus("error")
+          setUploadError(result.error || "Upload failed")
+        }
+      } catch (error) {
+        setUploadStatus("error")
+        setUploadError(error instanceof Error ? error.message : "Upload failed")
+      }
     }
   }
 
   const handleRemoveFile = () => {
     setSelectedFile(null)
+    setUploadStatus("idle")
+    setUploadError("")
   }
 
+  const handleRetry = () => {
+    setUploadStatus("idle")
+    setUploadError("")
+  }
+
+  // Show upload status after button click
+  if (uploadStatus === "uploading") {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-center space-x-3 py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            <div>
+              <p className="font-medium">Uploading {selectedFile?.name}...</p>
+              <p className="text-sm text-gray-500">Please wait while we process your file</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Show success state
+  if (uploadStatus === "success") {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-center space-x-3 py-8">
+            <CheckCircle className="h-6 w-6 text-green-600" />
+            <div>
+              <p className="font-medium text-green-800">Upload Successful!</p>
+              <p className="text-sm text-green-600">File uploaded and processing started</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Show error state
+  if (uploadStatus === "error") {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-medium">Upload Failed</p>
+              <p>{uploadError}</p>
+            </div>
+          </AlertDescription>
+        </Alert>
+        <div className="flex items-center justify-center space-x-3">
+          <Button onClick={handleRetry} variant="outline">
+            Try Again
+          </Button>
+          <Button onClick={handleRemoveFile} variant="ghost">
+            Select Different File
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Show file selection UI
   return (
     <div className="space-y-4">
       <Card

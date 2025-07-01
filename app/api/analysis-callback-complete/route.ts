@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@/lib/db"
+import { notifyAnalysisComplete } from "../analysis-notifications/route"
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,6 +62,18 @@ export async function POST(request: NextRequest) {
       
       console.log(`✓ Saved ${results.length} analysis results to database`)
     }
+
+    // Notify connected clients about analysis completion
+    const analysisData = {
+      analysis_filename,
+      analysis_filepath,
+      total_blocks_processed,
+      results_count: results?.length || 0,
+      completed_at: new Date().toISOString()
+    }
+    
+    notifyAnalysisComplete(upload_id, analysisData)
+    console.log(`✓ Notified clients about analysis completion for upload ${upload_id}`)
 
     return NextResponse.json({ 
       success: true, 

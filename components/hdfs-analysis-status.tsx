@@ -43,6 +43,7 @@ interface HDFSAnalysisStatusProps {
   onAnalysisComplete: () => void
   mockAnalysis?: any
   flaskInstructions?: any
+  refreshTrigger?: number
 }
 
 export function HDFSAnalysisStatus({
@@ -50,6 +51,7 @@ export function HDFSAnalysisStatus({
   onAnalysisComplete,
   mockAnalysis,
   flaskInstructions,
+  refreshTrigger,
 }: HDFSAnalysisStatusProps) {
   const [uploadHistory, setUploadHistory] = useState<UploadHistory[]>([])
   const [selectedUpload, setSelectedUpload] = useState<string | null>(null)
@@ -141,6 +143,49 @@ export function HDFSAnalysisStatus({
   useEffect(() => {
     fetchUploadHistory()
   }, [fetchUploadHistory])
+
+  // Refresh upload history when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger) {
+      console.log("HDFSAnalysisStatus: Refreshing upload history due to new upload")
+      fetchUploadHistory()
+    }
+  }, [refreshTrigger, fetchUploadHistory])
+
+  // Listen for SSE notifications about analysis completion
+  useEffect(() => {
+    console.log('HDFSAnalysisStatus: Setting up SSE connection')
+    const eventSource = new EventSource('/api/analysis-notifications')
+    
+    eventSource.onopen = () => {
+      console.log('HDFSAnalysisStatus: SSE connection opened')
+    }
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        console.log('HDFSAnalysisStatus: Received SSE notification:', data)
+        
+        if (data.type === 'analysis_complete') {
+          console.log(`HDFSAnalysisStatus: Analysis complete for upload ${data.uploadId}, refreshing history`)
+          // Call fetchUploadHistory directly without dependency
+          fetchUploadHistory()
+        }
+      } catch (error) {
+        console.error('HDFSAnalysisStatus: Error parsing SSE message:', error)
+      }
+    }
+    
+    eventSource.onerror = (error) => {
+      console.error('HDFSAnalysisStatus: SSE connection error:', error)
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      console.log('HDFSAnalysisStatus: Closing SSE connection')
+      eventSource.close()
+    }
+  }, []) // Remove fetchUploadHistory from dependencies
 
   const handleAnalysisClick = (uploadId: string) => {
     setSelectedUpload(uploadId)

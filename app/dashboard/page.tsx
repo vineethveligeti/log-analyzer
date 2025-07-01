@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [authError, setAuthError] = useState("")
   const [connectionStatus, setConnectionStatus] = useState<"online" | "offline">("online")
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
   const router = useRouter()
 
   // Monitor online/offline status
@@ -144,7 +145,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = async (file: File): Promise<{ success: boolean; error?: string }> => {
     setIsUploading(true)
     setError("")
     setAnalysisComplete(false)
@@ -176,26 +177,34 @@ export default function DashboardPage() {
         if (result.mock_analysis) {
           setAnalysisComplete(true)
         }
+
+        setRefreshTrigger(prevTrigger => prevTrigger + 1)
+
+        return { success: true }
       } else {
         const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }))
         console.error("Dashboard: Upload failed:", errorData)
-        setError(errorData.error || "Upload failed")
+        const errorMessage = errorData.error || "Upload failed"
+        setError(errorMessage)
+        return { success: false, error: errorMessage }
       }
     } catch (error) {
       console.error("Dashboard: Upload error:", error)
 
+      let errorMessage = "Unknown upload error"
       if (error instanceof Error) {
         if (error.name === "AbortError") {
-          setError("Upload timeout - file may be too large or connection is slow")
+          errorMessage = "Upload timeout - file may be too large or connection is slow"
         } else if (error.message.includes("fetch")) {
-          setError("Network error during upload - please check your connection")
+          errorMessage = "Network error during upload - please check your connection"
           setConnectionStatus("offline")
         } else {
-          setError(`Upload error: ${error.message}`)
+          errorMessage = `Upload error: ${error.message}`
         }
-      } else {
-        setError("Unknown upload error")
       }
+      
+      setError(errorMessage)
+      return { success: false, error: errorMessage }
     } finally {
       setIsUploading(false)
     }
@@ -324,12 +333,6 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <HDFSFileUpload onFileUpload={handleFileUpload} isLoading={isUploading} />
-            {error && (
-              <Alert variant="destructive" className="mt-4">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
           </CardContent>
         </Card>
 
@@ -351,7 +354,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
                     <p className="text-2xl font-bold text-blue-600">{uploadResult.total_entries}</p>
                     <p className="text-sm text-blue-700">Log Entries</p>
@@ -359,12 +362,6 @@ export default function DashboardPage() {
                   <div className="text-center p-4 bg-green-50 rounded-lg">
                     <p className="text-2xl font-bold text-green-600">{uploadResult.unique_blocks}</p>
                     <p className="text-sm text-green-700">Unique Blocks</p>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <p className="text-2xl font-bold text-purple-600">{uploadResult.analysis_status.toUpperCase()}</p>
-                    <p className="text-sm text-purple-700">
-                      {uploadResult.mock_analysis ? "Mock Analysis" : "Analysis Status"}
-                    </p>
                   </div>
                 </div>
 
@@ -395,6 +392,7 @@ export default function DashboardPage() {
           onAnalysisComplete={handleAnalysisComplete}
           mockAnalysis={uploadResult?.mock_analysis}
           flaskInstructions={uploadResult?.instructions}
+          refreshTrigger={refreshTrigger}
         />
       </main>
     </div>

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@/lib/db"
+import { notifyAnalysisProgress } from "../analysis-notifications/route"
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,6 +38,17 @@ export async function POST(request: NextRequest) {
       WHERE upload_id = ${upload_id}
     `
 
+    // Notify about progress
+    const progress = {
+      total_blocks: totalBlocks[0].count,
+      analyzed_blocks: analyzedBlocks[0].count,
+      current_block: block_id,
+      anomaly_score,
+      reason
+    }
+    
+    notifyAnalysisProgress(upload_id, progress)
+
     // If all blocks are analyzed, update upload status
     if (totalBlocks[0].count === analyzedBlocks[0].count) {
       await sql`
@@ -44,6 +56,8 @@ export async function POST(request: NextRequest) {
         SET analysis_status = 'completed', status = 'completed'
         WHERE id = ${upload_id}
       `
+      
+      console.log(`✓ All blocks analyzed for upload ${upload_id}`)
     }
 
     return NextResponse.json({ success: true })
